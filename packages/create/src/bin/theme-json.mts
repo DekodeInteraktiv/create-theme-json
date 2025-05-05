@@ -3,7 +3,7 @@
 /**
  * Internal dependencies
  */
-import { getNodeArgsFromCLI, spawnScript } from '../utils/index.mjs';
+import { getNodeArgsFromCLI, spawnScript } from '../utils/cli.mjs';
 
 const { scriptName, scriptArgs, nodeArgs } = getNodeArgsFromCLI();
 

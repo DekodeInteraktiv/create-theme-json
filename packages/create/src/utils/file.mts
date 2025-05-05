@@ -4,7 +4,6 @@
 import { existsSync, readdirSync, promises, unlink } from 'node:fs';
 import { join, dirname, extname, basename, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import _ from 'lodash';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

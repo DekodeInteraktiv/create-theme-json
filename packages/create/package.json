@@ -29,16 +29,19 @@
 		"theme-json": "./dist/bin/theme-json.mjs"
 	},
 	"dependencies": {
-		"chokidar": "^3.5.3",
-		"cosmiconfig": "^8.1.3",
-		"cross-spawn": "^7.0.3",
+		"chokidar": "^4.0.3",
+		"cosmiconfig": "^9.0.0",
+		"cross-spawn": "^7.0.6",
 		"deepmerge": "^4.3.1",
-		"fast-glob": "^3.2.7",
-		"lodash": "^4.17.21",
-		"picocolors": "^1.0.0",
+		"fast-glob": "^3.3.3",
+		"picocolors": "^1.1.1",
 		"slash": "^5.1.0"
 	},
 	"publishConfig": {
 		"access": "public"
+	},
+	"devDependencies": {
+		"@types/chokidar": "^1.7.5",
+		"@types/cross-spawn": "^6.0.6"
 	}
 }
