@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import fastGlob from 'fast-glob';
 import deepMerge from 'deepmerge';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Internal dependencies
@@ -107,7 +108,9 @@ async function processFile(
 		let fileConfig: FileConfig | undefined;
 
 		if (file.endsWith('.cjs') || file.endsWith('.mjs')) {
-			const importedFile = await import(file);
+			// Convert the file path to a file:// URL
+			const fileUrl = pathToFileURL(file);
+			const importedFile = await import(fileUrl.href); // Use the file:// URL for dynamic import
 			fileConfig = importedFile.default;
 
 			if (typeof fileConfig === 'function') {
