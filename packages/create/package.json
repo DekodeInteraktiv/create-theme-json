@@ -29,7 +29,7 @@
 		"theme-json": "./dist/bin/theme-json.mjs"
 	},
 	"dependencies": {
-		"chokidar": "^3.5.3",
+		"chokidar": "^4.0.3",
 		"cosmiconfig": "^8.1.3",
 		"cross-spawn": "^7.0.3",
 		"deepmerge": "^4.3.1",
