@@ -3,122 +3,157 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import fastGlob from 'fast-glob';
-import _ from 'lodash';
-import pc from 'picocolors';
 import deepMerge from 'deepmerge';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Internal dependencies
  */
-import { getConfig, getPlugins, importFresh } from '../utils/index.mjs';
+import { getConfig, getPlugins, Config } from '../utils/config.mjs';
+import { logInfo, logError, logSuccess } from '../utils/logger.mjs';
+import {
+	camelCase,
+	setNestedValue,
+	isEmpty,
+} from '../utils/object-helpers.mjs';
 
 async function build() {
-	const configs = await getConfig();
+	try {
+		const configs: Array<Config> = await getConfig();
 
-	for (const config of configs) {
-		const { src, version } = config;
-		const plugins = await getPlugins(config);
-
-		let initialThemeJson: any = {
-			version,
-		};
-
-		if (config.addSchema) {
-			const schemaVersion =
-				config.wpVersion === 'trunk'
-					? 'trunk'
-					: `wp/${config.wpVersion}`;
-			initialThemeJson.$schema = `https://schemas.wp.org/${schemaVersion}/theme.json`;
-		}
-
-		if (!!plugins.before.length) {
-			for (const plugin of plugins.before) {
-				initialThemeJson = await plugin(initialThemeJson, config);
-			}
-		}
-
-		const files = fastGlob.sync(src + '**/*', {
-			ignore: [src + '**/*.temp-fresh-import.{mjs,cjs}'],
+		// Assign default names if not provided
+		configs.forEach((config, index) => {
+			config.name = config.name || `config-${index}`;
 		});
 
-		let themeJson = await files.reduce(async (previousValue, file) => {
-			let nextValue = await previousValue;
+		for (const config of configs) {
+			logInfo(`Building theme.json for config: ${config.name}`);
+			const themeJson = await generateThemeJson({
+				...config,
+			});
+			writeFileSync(
+				config.dest,
+				JSON.stringify(themeJson, null, config.pretty ? '\t' : ''),
+			);
+			logSuccess(`theme.json created at ${config.dest}`);
+		}
+	} catch (error) {
+		logError(
+			'Error during build process',
+			error instanceof Error ? error : undefined,
+		);
+	}
+}
 
-			try {
-				let fileConfig;
+async function generateThemeJson(config: Config) {
+	try {
+		const { src, version, addSchema, wpVersion } = config;
+		const plugins = await getPlugins(config);
 
-				if (file.endsWith('.cjs') || file.endsWith('.mjs')) {
-					const importedFile = await importFresh(file);
+		let themeJson: { version: number; $schema?: string } = { version };
 
-					fileConfig = importedFile.default;
+		if (addSchema) {
+			const schemaVersion =
+				wpVersion === 'trunk' ? 'trunk' : `wp/${wpVersion}`;
+			themeJson.$schema = `https://schemas.wp.org/${schemaVersion}/theme.json`;
+		}
 
-					if (typeof fileConfig === 'function') {
-						fileConfig = fileConfig();
-					}
-				} else if (file.endsWith('.json')) {
-					const content = readFileSync(file, {
-						encoding: 'utf-8',
-					});
-
-					fileConfig = JSON.parse(content);
-				} else {
-					console.log(
-						pc.red(
-							`${file.replace(
-								src,
-								'',
-							)}: File not supported. Supported extensions are: json, cjs and mjs.\n`,
-						),
-					);
-					process.exit(1);
-				}
-
-				if (!_.isEmpty(fileConfig)) {
-					const destination = file
-						.replace(src, '')
-						.replace(/\.[^/.]+$/, '');
-
-					const splittedDestination = destination.split('/blocks/');
-
-					if (splittedDestination[0]) {
-						let dest = splittedDestination[0].split('/');
-						dest = dest.map(_.camelCase);
-
-						if (splittedDestination[1]) {
-							const [blockNamespace, blockName, ...blockDest] =
-								splittedDestination[1].split('/');
-							dest = [
-								...dest,
-								'blocks',
-								`${blockNamespace}/${blockName}`,
-								...blockDest,
-							];
-						}
-
-						const newNextValue = _.set({}, dest, fileConfig);
-						nextValue = deepMerge(nextValue, newNextValue);
-					}
-				}
-			} catch (err) {
-				console.log(file, err);
+		if (plugins.before.length) {
+			for (const plugin of plugins.before) {
+				themeJson = await plugin(themeJson, config);
 			}
+		}
 
-			return nextValue;
-		}, Promise.resolve(initialThemeJson));
+		const files = fastGlob.sync(`${src}**/*`, {
+			ignore: [`${src}**/*.temp-fresh-import.{mjs,cjs}`],
+		});
 
-		if (!!plugins.after.length) {
+		for (const file of files) {
+			logInfo(`Processing file: ${file}`);
+			const fileConfig = await processFile(file, src);
+			if (fileConfig) {
+				themeJson = {
+					...deepMerge(themeJson, fileConfig),
+					version: themeJson.version,
+				};
+			}
+		}
+
+		if (plugins.after.length) {
 			for (const plugin of plugins.after) {
 				themeJson = await plugin(themeJson, config);
 			}
 		}
 
-		writeFileSync(
-			config.dest,
-			JSON.stringify(themeJson, null, config.pretty ? '\t' : ''),
+		return themeJson;
+	} catch (error) {
+		logError(
+			'Error generating theme.json',
+			error instanceof Error ? error : undefined,
 		);
-	}
 
-	console.log(pc.green('🎉 theme.json created'));
+		throw error;
+	}
+}
+
+interface FileConfig {
+	[key: string]: any;
+}
+
+async function processFile(
+	file: string,
+	src: string,
+): Promise<FileConfig | undefined> {
+	try {
+		let fileConfig: FileConfig | undefined;
+
+		if (file.endsWith('.cjs') || file.endsWith('.mjs')) {
+			// Convert the file path to a file:// URL
+			const fileUrl = pathToFileURL(file);
+			const importedFile = await import(fileUrl.href); // Use the file:// URL for dynamic import
+			fileConfig = importedFile.default;
+
+			if (typeof fileConfig === 'function') {
+				fileConfig = fileConfig();
+			}
+		} else if (file.endsWith('.json')) {
+			const content = readFileSync(file, { encoding: 'utf-8' });
+			fileConfig = JSON.parse(content) as FileConfig;
+		} else {
+			throw new Error(`Unsupported file type: ${file}`);
+		}
+
+		if (fileConfig && !isEmpty(fileConfig)) {
+			const destination = file.replace(src, '').replace(/\.[^/.]+$/, '');
+			const splittedDestination = destination.split('/blocks/');
+
+			let dest: string[] = (splittedDestination[0] ?? '')
+				.split('/')
+				.map(camelCase);
+
+			if (splittedDestination[1]) {
+				const [blockNamespace, blockName, ...blockDest] =
+					splittedDestination[1].split('/');
+				dest = [
+					...dest,
+					'blocks',
+					`${blockNamespace}/${blockName}`,
+					...blockDest,
+				];
+			}
+
+			return setNestedValue({}, dest, fileConfig);
+		}
+
+		return undefined; // Explicitly return undefined if no fileConfig is found
+	} catch (error) {
+		logError(
+			`Error processing file: ${file}`,
+			error instanceof Error ? error : undefined,
+		);
+
+		throw error;
+	}
 }
 
 export default build;

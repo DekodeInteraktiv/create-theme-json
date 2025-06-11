@@ -5,7 +5,7 @@ const themeJson = require('./theme.json');
 
 describe('Theme JSON', () => {
 	it('should add version', () => {
-		expect(themeJson.version).toBe(2);
+		expect(themeJson.version).toBe(3);
 	});
 
 	it('should merge', () => {

@@ -1,15 +1,18 @@
 {
 	"compilerOptions": {
-		"moduleResolution": "node",
+		// Target modern JavaScript features
+		"target": "ES2020",
+
+		// Use ESNext module system for ESM support
 		"module": "ESNext",
-		"target": "es2019",
-		"lib": ["es2019"],
-		"allowSyntheticDefaultImports": true,
-		"resolveJsonModule": false,
-		"declaration": false,
-		"pretty": true,
-		"newLine": "lf",
-		"stripInternal": true,
+
+		// Resolve modules using Node.js resolution
+		"moduleResolution": "node",
+
+		// Include modern JavaScript libraries
+		"lib": ["ES2020"],
+
+		// Enable strict type-checking options
 		"strict": true,
 		"noImplicitReturns": true,
 		"noImplicitOverride": true,
@@ -18,9 +21,38 @@
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedIndexedAccess": true,
 		"noPropertyAccessFromIndexSignature": true,
+
+		// Allow default imports for modules without default exports
+		"allowSyntheticDefaultImports": true,
+
+		// Enable JSON module imports
+		"resolveJsonModule": true,
+
+		// Skip emitting declaration files
+		"declaration": false,
+
+		// Improve debugging and readability
+		"pretty": true,
+
+		// Enforce consistent line endings
+		"newLine": "lf",
+
+		// Remove unused internal code
+		"stripInternal": true,
+
+		// Prevent emitting files if there are errors
 		"noEmitOnError": true,
+
+		// Use `define` semantics for class fields
 		"useDefineForClassFields": true,
+
+		// Ensure consistent file casing
 		"forceConsistentCasingInFileNames": true,
-		"skipLibCheck": true
+
+		// Skip type checking of declaration files
+		"skipLibCheck": true,
+
+		// Specify type definitions folder
+		"typeRoots": ["./node_modules/@types"]
 	}
 }

@@ -11,14 +11,15 @@ import slash from 'slash';
 import { getCurrentWorkingDirectory } from './process.mjs';
 import { addTrailingSlash } from './file.mjs';
 
-interface Config {
+export interface Config {
 	src: string;
 	dest: string;
-	addSchema: boolean;
-	pretty: boolean;
+	addSchema?: boolean;
+	pretty?: boolean;
 	version: number;
 	wpVersion: string;
 	plugins: string[];
+	name?: string;
 }
 
 const defaultConfig: Config = {
@@ -26,9 +27,10 @@ const defaultConfig: Config = {
 	dest: 'theme.json',
 	addSchema: false,
 	pretty: false,
-	version: 2,
+	version: 3,
 	wpVersion: 'trunk',
 	plugins: [],
+	name: '',
 };
 
 export async function getConfig(): Promise<Array<Config>> {
