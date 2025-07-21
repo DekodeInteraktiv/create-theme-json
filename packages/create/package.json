@@ -41,7 +41,7 @@
 		"access": "public"
 	},
 	"devDependencies": {
-		"@types/chokidar": "^1.7.5",
+		"@types/chokidar": "^2.1.7",
 		"@types/cross-spawn": "^6.0.6"
 	}
 }
